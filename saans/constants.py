@@ -122,8 +122,10 @@ MAX_QUESTION_LEN = 300
 # ---------- Gemini -------------------------------------------------------------
 # Tried in order, so a retired model ID doesn't take the app down.
 DEFAULT_MODELS = ("gemini-3.8-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-flash-latest")
-AI_TIMEOUT_MS = 20_000
-AI_MAX_OUTPUT_TOKENS = 900  # a briefing is short; a small cap keeps calls fast and cheap
+AI_TIMEOUT_MS = 30_000
+# The briefing itself is short, but newer Gemini models spend output tokens on
+# "thinking" BEFORE writing; a tight cap (we had 900) cut the JSON off mid-way.
+AI_MAX_OUTPUT_TOKENS = 4096
 AI_TEMPERATURE = 0.4  # low: we want faithful wording of facts, not creativity
 
 # ---------- Google Air Quality API ---------------------------------------------

@@ -36,6 +36,12 @@ logger = logging.getLogger(__name__)
 ALWAYS_ALLOWED = frozenset({2.5, 10.0, 95.0, 112.0, 24.0})
 _NUMBER_RE = re.compile(r"\d+(?:\.\d+)?")
 _THOUSANDS_RE = re.compile(r"(?<=\d),(?=\d{3}(?!\d))")
+# Structured-output schema: Gemini must return exactly {"briefing": str, "answer": str}.
+RESPONSE_SCHEMA = {
+    "type": "OBJECT",
+    "properties": {"briefing": {"type": "STRING"}, "answer": {"type": "STRING"}},
+    "required": list(RESPONSE_KEYS),
+}
 
 
 class TextGenerator(Protocol):
@@ -65,6 +71,7 @@ class GeminiGenerator:
             temperature=AI_TEMPERATURE,
             max_output_tokens=AI_MAX_OUTPUT_TOKENS,
             response_mime_type="application/json",  # ask Gemini for JSON, not prose
+            response_schema=RESPONSE_SCHEMA,  # ...and exactly our two string fields
         )
         last_error: Exception | None = None
         for model in self._models:
