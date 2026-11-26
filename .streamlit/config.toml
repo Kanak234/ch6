@@ -1,0 +1,15 @@
+# High-contrast sky theme (text and buttons pass WCAG AA contrast).
+[theme]
+primaryColor = "#0B5394"
+backgroundColor = "#FAFCFF"
+secondaryBackgroundColor = "#E8F1FB"
+textColor = "#10223A"
+font = "sans serif"
+
+[server]
+headless = true
+enableXsrfProtection = true
+maxUploadSize = 1
+
+[browser]
+gatherUsageStats = false
