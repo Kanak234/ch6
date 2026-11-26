@@ -92,7 +92,12 @@ def _shift_tip(  # noqa: PLR0913 - explicit inputs keep this pure and easy to te
     before = round(inhaled_dose_ug(usual, activity, minutes))
     after = round(inhaled_dose_ug(best.mean_pm25, activity, minutes))
     impact = Impact(
-        impact_key, t(lang, impact_key), before, after, t(lang, "unit_dose"), ("google_aq", "epa_efh6", "epa_expobox")
+        impact_key,
+        t(lang, impact_key),
+        before,
+        after,
+        t(lang, "unit_dose"),
+        ("google_aq", "open_meteo", "epa_efh6", "epa_expobox"),
     )
     values = {
         "activity": label,
@@ -220,7 +225,12 @@ def indoor_tips(profile: Profile, best: Window | None, worst: Window | None) -> 
         before = round(indoor_pm25(peak, ACH_OPEN, volume))
         after = round(indoor_pm25(peak, ACH_CLOSED, volume))
         impact = Impact(
-            "imp_windows", t(lang, "imp_windows"), before, after, t(lang, "unit_indoor"), ("epa_efh19", "google_aq")
+            "imp_windows",
+            t(lang, "imp_windows"),
+            before,
+            after,
+            t(lang, "unit_indoor"),
+            ("epa_efh19", "google_aq", "open_meteo"),
         )
         tips.append(
             Tip(

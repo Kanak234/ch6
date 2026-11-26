@@ -218,8 +218,8 @@ def aqi_badge(plan: Plan) -> str:
 def render_status(plan: Plan) -> None:
     lang, snap = plan.profile.lang, plan.snapshot
     st.markdown(aqi_badge(plan), unsafe_allow_html=True)  # safe: constants + html.escape'd text
-    if snap.source == "google":
-        st.caption("✅ " + t(lang, "src_google"))
+    if snap.source in {"google", "open_meteo"}:
+        st.caption("✅ " + t(lang, f"src_{snap.source}"))
     else:
         st.warning(t(lang, "src_demo", reason=snap.note or "offline"), icon="ℹ️")
     cols = st.columns(4)

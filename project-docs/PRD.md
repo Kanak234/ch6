@@ -24,7 +24,7 @@ A GenAI assistant that helps a family get through smog season by:
 |---|---|---|
 | F1 | Location | Preset city list or exact lat/lon (validated inside India, rounded to 2 decimals). |
 | F2 | Household profile (≈30 s) | Children / elderly / respiratory illness, travel mode + minutes + usual hour, exercise type + minutes + usual hour, cooking fuel, burns waste, incense/coils, purifier + CADR, room size. |
-| F3 | Live air data | Google Air Quality API current conditions + next-24-h hourly forecast. On any failure: deterministic demo data **labelled "Demo data (not live)" with the reason**. |
+| F3 | Live air data | Google Air Quality API (if key + billing) → Open-Meteo free CAMS forecast (no key) → deterministic demo data **labelled "Demo data (not live)" with the reasons**. Source always shown. |
 | F4 | AQI | CPCB National AQI computed from PM2.5/PM10 (labelled "PM-based estimate"). Colour badge always carries the text category. |
 | F5 | Routine | Cleanest daytime slot (05:00–21:00 only) for the user's exercise and commute vs. their usual hour; shift suggested only if it saves ≥5 %. Very Poor+ air → "exercise indoors". N95 tip when the trip is in Poor+ air. Extra protection tip if vulnerable people live at home. |
 | F6 | Indoor | Windows shut at peak vs open (mass-balance model); purifier effect (owned CADR, or the EPA/ENERGY STAR 4.8 ACH recommended size); polluting fuel → LPG/induction; incense/coils; wet mopping. |

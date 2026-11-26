@@ -1,17 +1,19 @@
-"""Air-quality data: Google Air Quality API first, honest demo data as fallback.
+"""Air-quality data, in three tiers: Google -> Open-Meteo -> labelled demo.
 
-Why Google Air Quality API: it gives current conditions AND a 96-hour hourly
-forecast for any lat/lon in India from one key — the forecast is what makes
-"go out at 3 pm, not 7 am" possible.
+1. Google Air Quality API (needs a key + billing): current conditions and a
+   96-hour hourly forecast for any lat/lon in India.
+2. Open-Meteo Air Quality API (free, no key): hourly PM2.5/PM10 forecast from
+   the Copernicus (CAMS) model. Used automatically when Google is unavailable,
+   so the app shows LIVE forecast data even without a paid Google project.
+3. Demo data: only if both fail, and always labelled "demo" with the reason.
+The hourly forecast is what makes "go out at 3 pm, not 7 am" possible.
 
 Design:
-  * The HTTP call is injected (`post` parameter) so tests never touch the
-    network and we can simulate timeouts, bad JSON and missing fields.
-  * The API key goes in the `X-Goog-Api-Key` header, never in the URL, so it
+  * The HTTP calls are injected (`post` / `get` parameters) so tests never
+    touch the network and we can simulate timeouts, bad JSON and missing fields.
+  * The Google key goes in the `X-Goog-Api-Key` header, never in the URL, so it
     can't leak into logs or browser history. It stays on the server.
-  * Any failure -> `demo_snapshot()`, clearly labelled "demo" with the reason,
-    so the app keeps working but never pretends demo numbers are measured.
-Flow: app.py (cached) -> fetch_snapshot() -> AirSnapshot -> advisor.py
+Flow: app.py (cached) -> get_snapshot() -> AirSnapshot -> advisor.py
 """
 
 from __future__ import annotations
@@ -19,6 +21,7 @@ from __future__ import annotations
 import json
 import logging
 import urllib.error
+import urllib.parse
 import urllib.request
 from collections.abc import Callable
 from datetime import datetime, timedelta
@@ -32,12 +35,15 @@ from .constants import (
     DEMO_PM10_RATIO,
     FORECAST_HOURS,
     IST,
+    MIN_FORECAST_HOURS,
+    OPEN_METEO_URL,
 )
 from .models import AirSnapshot, Reading
 
 logger = logging.getLogger(__name__)
 
 PostFn = Callable[[str, dict, str], dict]
+GetFn = Callable[[str, dict], dict]
 MICROGRAMS = "MICROGRAMS_PER_CUBIC_METER"
 
 
@@ -53,6 +59,19 @@ def http_post_json(url: str, body: dict, api_key: str) -> dict:
         headers={"Content-Type": "application/json", "X-Goog-Api-Key": api_key},
         method="POST",
     )
+    try:
+        with urllib.request.urlopen(request, timeout=AQ_TIMEOUT_S) as response:  # noqa: S310
+            return json.loads(response.read().decode())
+    except urllib.error.HTTPError as exc:
+        raise AirDataError(f"HTTP {exc.code}") from exc
+    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
+        raise AirDataError(type(exc).__name__) from exc
+
+
+def http_get_json(url: str, params: dict) -> dict:
+    """GET with query parameters and a timeout; returns parsed JSON or raises AirDataError."""
+    full = f"{url}?{urllib.parse.urlencode(params)}"
+    request = urllib.request.Request(full, headers={"User-Agent": "SaansSaathi/1.0"})  # noqa: S310 - our https constant
     try:
         with urllib.request.urlopen(request, timeout=AQ_TIMEOUT_S) as response:  # noqa: S310
             return json.loads(response.read().decode())
@@ -121,9 +140,58 @@ def fetch_snapshot(  # noqa: PLR0917 - mirrors get_snapshot; all six inputs are 
     }
     raw = post(f"{AQ_BASE_URL}/forecast:lookup", body, api_key).get("hourlyForecasts") or []
     forecast = tuple(sorted((parse_reading(h) for h in raw), key=lambda r: r.time))
-    if len(forecast) < 6:  # too short to plan a day honestly
+    if len(forecast) < MIN_FORECAST_HOURS:  # too short to plan a day honestly
         raise AirDataError("forecast too short")
     return AirSnapshot(city=city, current=current, forecast=forecast, source="google")
+
+
+def _num(value: object) -> float | None:
+    """A non-negative real number, or None (Open-Meteo uses null for missing hours)."""
+    if isinstance(value, (int, float)) and not isinstance(value, bool) and value >= 0:
+        return float(value)
+    return None
+
+
+def fetch_open_meteo(city: str, lat: float, lon: float, now: datetime, get: GetFn = http_get_json) -> AirSnapshot:
+    """Free CAMS forecast via Open-Meteo. Raises AirDataError on any problem.
+
+    We ask for times in Asia/Kolkata, so timestamps come back as local wall-clock
+    ('2026-11-26T17:00') and we attach IST. "Current" = the latest hour that is
+    not in the future; the forecast = the next 24 hours after it.
+    """
+    params = {
+        "latitude": lat,
+        "longitude": lon,
+        "hourly": "pm2_5,pm10",
+        "timezone": "Asia/Kolkata",
+        "forecast_days": 2,  # today + tomorrow covers any 24-hour window
+    }
+    data = get(OPEN_METEO_URL, params)
+    hourly = data.get("hourly") if isinstance(data, dict) else None
+    if not isinstance(hourly, dict):
+        raise AirDataError("no hourly data")
+    units = (data.get("hourly_units") or {}).get("pm2_5", "")
+    if "g/m" not in str(units):  # expect µg/m³ (Open-Meteo writes it with a Greek mu)
+        raise AirDataError("unexpected units")
+    times, pm25s, pm10s = hourly.get("time") or [], hourly.get("pm2_5") or [], hourly.get("pm10") or []
+    readings: list[Reading] = []
+    for i, stamp in enumerate(times):
+        pm25 = _num(pm25s[i]) if i < len(pm25s) else None
+        if pm25 is None or not isinstance(stamp, str):
+            continue  # skip hours the model hasn't filled
+        try:
+            t = datetime.fromisoformat(stamp).replace(tzinfo=IST)
+        except ValueError as exc:
+            raise AirDataError("bad time") from exc
+        pm10 = _num(pm10s[i]) if i < len(pm10s) else None
+        readings.append(Reading(t, round(pm25, 1), None if pm10 is None else round(pm10, 1)))
+    readings.sort(key=lambda r: r.time)
+    hour0 = now.astimezone(IST).replace(minute=0, second=0, microsecond=0)
+    past = [r for r in readings if r.time <= hour0]
+    future = tuple(r for r in readings if r.time > hour0)[:FORECAST_HOURS]
+    if not past or len(future) < MIN_FORECAST_HOURS:
+        raise AirDataError("forecast too short")
+    return AirSnapshot(city=city, current=past[-1], forecast=future, source="open_meteo")
 
 
 def demo_snapshot(city: str, now: datetime, note: str = "") -> AirSnapshot:
@@ -142,15 +210,41 @@ def demo_snapshot(city: str, now: datetime, note: str = "") -> AirSnapshot:
     return AirSnapshot(city=city, current=reading(hour0), forecast=forecast, source="demo", note=note)
 
 
-def get_snapshot(  # noqa: PLR0917 - location + key + clock + injectable HTTP for tests
-    city: str, lat: float, lon: float, api_key: str, now: datetime, post: PostFn = http_post_json
-) -> AirSnapshot:
-    """Live data if possible, otherwise demo data that says why. Never raises."""
+def _try(label: str, fetch: Callable[[], AirSnapshot]) -> tuple[AirSnapshot | None, str]:
+    """Run one data source; return (snapshot, "") or (None, "Label: reason")."""
     try:
-        return fetch_snapshot(city, lat, lon, api_key, now, post)
+        return fetch(), ""
     except AirDataError as exc:
-        reason = str(exc)
-    except Exception as exc:  # anything unexpected from the network stack: still never crash the UI
-        logger.warning("Unexpected air-data error: %s", type(exc).__name__)
-        reason = type(exc).__name__
-    return demo_snapshot(city, now, note=reason)
+        return None, f"{label}: {exc}"
+    except Exception as exc:  # anything unexpected from the network stack: never crash the UI
+        logger.warning("Unexpected %s error: %s", label, type(exc).__name__)
+        return None, f"{label}: {type(exc).__name__}"
+
+
+def get_snapshot(  # noqa: PLR0913, PLR0917 - location + key + clock + injectable HTTP for tests
+    city: str,
+    lat: float,
+    lon: float,
+    api_key: str,
+    now: datetime,
+    post: PostFn | None = None,
+    get: GetFn | None = None,
+) -> AirSnapshot:
+    """Google -> Open-Meteo -> labelled demo. Never raises.
+
+    The HTTP functions are looked up at CALL time (not as default arguments),
+    so tests can monkeypatch `data.http_get_json` / `data.http_post_json`.
+    """
+    post = post or http_post_json
+    get = get or http_get_json
+    reasons: list[str] = []
+    if api_key:
+        snap, why = _try("Google", lambda: fetch_snapshot(city, lat, lon, api_key, now, post))
+        if snap:
+            return snap
+        reasons.append(why)
+    snap, why = _try("Open-Meteo", lambda: fetch_open_meteo(city, lat, lon, now, get))
+    if snap:
+        return snap
+    reasons.append(why)
+    return demo_snapshot(city, now, note="; ".join(reasons))

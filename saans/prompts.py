@@ -41,7 +41,10 @@ def build_facts(plan: Plan) -> dict:
     lang, p = plan.profile.lang, plan.profile
     facts: dict = {
         "city": p.city,
-        "data_source": "live Google Air Quality API" if plan.snapshot.source == "google" else "demo data (not live)",
+        "data_source": {
+            "google": "live Google Air Quality API",
+            "open_meteo": "live Open-Meteo forecast (Copernicus CAMS model)",
+        }.get(plan.snapshot.source, "demo data (not live)"),
         "aqi_now": plan.aqi_now,
         "aqi_category": t(lang, plan.category),
         "pm25_now_ug_m3": round(plan.snapshot.current.pm25),

@@ -16,6 +16,14 @@ SOURCES: dict[str, tuple[str, str]] = {
         "Google Air Quality API — current conditions & 96-hour hourly forecast",
         "https://developers.google.com/maps/documentation/air-quality/forecast",
     ),
+    "open_meteo": (
+        "Open-Meteo Air Quality API — free hourly PM2.5/PM10 forecast (non-commercial use)",
+        "https://open-meteo.com/en/docs/air-quality-api",
+    ),
+    "cams": (
+        "Copernicus Atmosphere Monitoring Service (CAMS) — the forecast model behind Open-Meteo",
+        "https://atmosphere.copernicus.eu/",
+    ),
     "epa_efh6": (
         "US EPA Exposure Factors Handbook, Ch. 6 — breathing rates by activity",
         "https://www.epa.gov/expobox/exposure-factors-handbook-chapter-6",

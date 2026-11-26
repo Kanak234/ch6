@@ -114,7 +114,7 @@ class AirSnapshot:
     city: str
     current: Reading
     forecast: tuple[Reading, ...]  # next hours, oldest first
-    source: str  # "google" (live) or "demo" (offline, clearly labelled)
+    source: str  # "google" | "open_meteo" (both live) | "demo" (offline, clearly labelled)
     note: str = ""  # why we are on demo data, if we are
 
 

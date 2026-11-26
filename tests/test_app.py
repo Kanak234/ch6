@@ -7,13 +7,21 @@ from pathlib import Path
 import pytest
 from streamlit.testing.v1 import AppTest
 
+from saans import data
+from saans.data import AirDataError
+
 APP = str(Path(__file__).resolve().parents[1] / "app.py")
+
+
+def _offline(url, params):
+    raise AirDataError("offline in tests")
 
 
 @pytest.fixture
 def app(monkeypatch):
     for key in ("GEMINI_API_KEY", "GOOGLE_MAPS_API_KEY", "GEMINI_MODEL"):
         monkeypatch.delenv(key, raising=False)
+    monkeypatch.setattr(data, "http_get_json", _offline)  # no network: Open-Meteo "down"
     return AppTest.from_file(APP, default_timeout=60).run()
 
 
@@ -71,3 +79,22 @@ def test_ask_question_offline(app):
     next(b for b in app.button if b.label == "Ask").click().run()
     assert not app.exception
     assert any("Gemini is not available" in m.value for m in app.markdown)
+
+
+def test_live_open_meteo_is_labelled(monkeypatch):
+    from conftest import FakeGet, open_meteo_payload
+
+    for key in ("GEMINI_API_KEY", "GOOGLE_MAPS_API_KEY"):
+        monkeypatch.delenv(key, raising=False)
+    from datetime import datetime
+
+    from saans.constants import IST
+
+    today = datetime.now(IST).strftime("%Y-%m-%dT00:00")
+    monkeypatch.setattr(data, "http_get_json", FakeGet(open_meteo_payload(start_iso=today)))
+    at = AppTest.from_file(APP, default_timeout=60)
+    at.run()
+    at.sidebar.selectbox(key="city").select("Bokaro")  # different cache key from the offline tests
+    at.sidebar.button[0].click().run()
+    assert not at.exception
+    assert any("Open-Meteo" in c.value for c in at.caption)

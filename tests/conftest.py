@@ -103,3 +103,30 @@ def google_payloads():
     # 24 forecast hours from 11:00 UTC (16:30 IST rounded -> 16:00 IST) onwards, deliberately unsorted.
     hours = [google_hour(f"2026-11-{26 + (11 + h) // 24}T{(11 + h) % 24:02d}:00:00Z", 60.0 + h) for h in range(24)]
     return current, {"hourlyForecasts": list(reversed(hours))}
+
+
+def open_meteo_payload(start_iso: str = "2026-11-26T00:00", hours: int = 48, units: str = "\u03bcg/m\u00b3"):
+    """Open-Meteo hourly response (IST wall-clock times, as with timezone=Asia/Kolkata)."""
+    from datetime import datetime as _dt
+    from datetime import timedelta as _td
+
+    t0 = _dt.fromisoformat(start_iso)
+    times = [(t0 + _td(hours=h)).strftime("%Y-%m-%dT%H:%M") for h in range(hours)]
+    return {
+        "timezone": "Asia/Kolkata",
+        "hourly_units": {"time": "iso8601", "pm2_5": units, "pm10": units},
+        "hourly": {"time": times, "pm2_5": [50.0 + h for h in range(hours)], "pm10": [90.0 + h for h in range(hours)]},
+    }
+
+
+class FakeGet:
+    """Fake for data.http_get_json: replays one payload (or raises) and records calls."""
+
+    def __init__(self, payload: dict | None = None, error: Exception | None = None):
+        self.payload, self.error, self.calls = payload, error, []
+
+    def __call__(self, url: str, params: dict) -> dict:
+        self.calls.append((url, params))
+        if self.error:
+            raise self.error
+        return self.payload

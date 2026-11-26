@@ -75,7 +75,8 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "best_slot": "Cleanest outdoor slot",
         "worst_slot": "Most polluted slot",
         "src_google": "Live data: Google Air Quality API",
-        "src_demo": "Demo data (not live) — {reason}. Add a Google Maps Platform key for live readings.",
+        "src_open_meteo": "Live forecast: Open-Meteo (Copernicus CAMS model, ~45 km grid)",
+        "src_demo": "Demo data (not live) — live sources unavailable ({reason}).",
         "no_slot": "No daytime slot in the forecast",
         # --- tabs
         "tab_plan": "Today's plan",
@@ -204,7 +205,7 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "brief_offline_answer": "Gemini is not available, so I can't answer free questions right now — the plan above covers today.",
         # --- method & footer
         "method": (
-            "**How the numbers are made.** Air data comes from the Google Air Quality API (or labelled demo data). "
+            "**How the numbers are made.** Air data comes from the Google Air Quality API, or the free Open-Meteo (Copernicus CAMS) forecast, or labelled demo data. "
             "We convert PM2.5/PM10 to India's CPCB AQI ourselves. *Breathed-in dose* = concentration × breathing rate "
             "for the activity × time. *Indoor air* uses a standard single-room mass balance. Gemini only writes the "
             "words; a guard rejects any answer containing a number our code didn't produce."
@@ -282,7 +283,8 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "best_slot": "बाहर जाने का सबसे साफ़ समय",
         "worst_slot": "सबसे प्रदूषित समय",
         "src_google": "लाइव डेटा: Google Air Quality API",
-        "src_demo": "डेमो डेटा (लाइव नहीं) — {reason}। लाइव रीडिंग के लिए Google Maps Platform key जोड़ें।",
+        "src_open_meteo": "लाइव पूर्वानुमान: Open-Meteo (Copernicus CAMS मॉडल, ~45 km ग्रिड)",
+        "src_demo": "डेमो डेटा (लाइव नहीं) — लाइव स्रोत उपलब्ध नहीं ({reason})।",
         "no_slot": "पूर्वानुमान में दिन का कोई समय नहीं मिला",
         "tab_plan": "आज का प्लान",
         "tab_indoor": "घर के अंदर की हवा",
@@ -403,7 +405,7 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "brief_impact": "{title}: {before} → {after} {unit} ({pct}% कम)।",
         "brief_offline_answer": "Gemini उपलब्ध नहीं है, इसलिए अभी सवालों के जवाब नहीं दे सकते — आज के लिए ऊपर का प्लान देखें।",
         "method": (
-            "**संख्याएँ कैसे बनती हैं।** हवा का डेटा Google Air Quality API से आता है (या साफ़ लिखा डेमो डेटा)। "
+            "**संख्याएँ कैसे बनती हैं।** हवा का डेटा Google Air Quality API से, या मुफ़्त Open-Meteo (Copernicus CAMS) पूर्वानुमान से, या साफ़ लिखे डेमो डेटा से आता है। "
             "PM2.5/PM10 को हम ख़ुद भारत के CPCB AQI में बदलते हैं। *साँस में गई मात्रा* = सांद्रता × उस गतिविधि में "
             "साँस की दर × समय। *घर के अंदर की हवा* के लिए एक मानक कमरा-संतुलन मॉडल है। Gemini सिर्फ़ शब्द लिखता है; "
             "ऐसा कोई भी जवाब रद्द होता है जिसमें हमारी गणना से बाहर की संख्या हो।"
@@ -480,7 +482,8 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "best_slot": "Bahar jaane ka sabse saaf time",
         "worst_slot": "Sabse pollution wala time",
         "src_google": "Live data: Google Air Quality API",
-        "src_demo": "Demo data (live nahi) — {reason}. Live reading ke liye Google Maps Platform key add karo.",
+        "src_open_meteo": "Live forecast: Open-Meteo (Copernicus CAMS model, ~45 km grid)",
+        "src_demo": "Demo data (live nahi) — live sources available nahi ({reason}).",
         "no_slot": "Forecast mein din ka koi slot nahi mila",
         "tab_plan": "Aaj ka plan",
         "tab_indoor": "Ghar ke andar ki hawa",
@@ -601,7 +604,7 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "brief_impact": "{title}: {before} → {after} {unit} ({pct}% kam).",
         "brief_offline_answer": "Gemini available nahi hai, isliye abhi sawaalon ke jawab nahi de sakte — aaj ke liye upar ka plan dekho.",
         "method": (
-            "**Numbers kaise bante hain.** Hawa ka data Google Air Quality API se aata hai (ya saaf likha demo data). "
+            "**Numbers kaise bante hain.** Hawa ka data Google Air Quality API se, ya free Open-Meteo (Copernicus CAMS) forecast se, ya saaf likhe demo data se aata hai. "
             "PM2.5/PM10 ko hum khud India ke CPCB AQI mein badalte hain. *Saans mein gayi matra* = concentration × us "
             "activity mein saans ki rate × time. *Ghar ke andar ki hawa* ke liye ek standard single-room mass balance "
             "model hai. Gemini sirf words likhta hai; koi bhi jawab reject hota hai jismein hamari calculation se bahar "

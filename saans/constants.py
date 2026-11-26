@@ -129,3 +129,8 @@ AI_TEMPERATURE = 0.4  # low: we want faithful wording of facts, not creativity
 # ---------- Google Air Quality API ---------------------------------------------
 AQ_BASE_URL = "https://airquality.googleapis.com/v1"
 AQ_TIMEOUT_S = 8
+
+# ---------- Open-Meteo Air Quality API (free fallback, no key) -------------------
+# CAMS (Copernicus) hourly forecast; free for non-commercial use, attribution required.
+OPEN_METEO_URL = "https://air-quality-api.open-meteo.com/v1/air-quality"
+MIN_FORECAST_HOURS = 6  # shorter than this can't plan a day honestly

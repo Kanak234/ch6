@@ -4,7 +4,7 @@
 ```
 app.py (Streamlit UI only)
   ├─ validation.build_profile ──► Profile (frozen dataclass)
-  ├─ cached_snapshot ──► data.get_snapshot ──► Google Air Quality API  (fallback: labelled demo)
+  ├─ cached_snapshot ──► data.get_snapshot ──► Google Air Quality API ──► Open-Meteo ──► labelled demo
   ├─ advisor.build_plan
   │     ├─ aqi        CPCB NAQI maths
   │     ├─ exposure   inhaled dose + indoor mass balance + time windows
@@ -16,10 +16,10 @@ app.py (Streamlit UI only)
 | Layer | Choice | Why |
 |---|---|---|
 | UI | Streamlit 1.67 | Single Python codebase, free hosting on Streamlit Community Cloud, built-in `AppTest`. |
-| Air data | Google Air Quality API (`currentConditions:lookup`, `forecast:lookup`) | Hourly forecast up to 96 h for any lat/lon in India. |
+| Air data | Google Air Quality API (`currentConditions:lookup`, `forecast:lookup`) → Open-Meteo Air Quality API (free, no key, CAMS model) | Hourly forecast for any lat/lon in India; Open-Meteo keeps data live when Google has no key/billing. |
 | GenAI | Google Gemini via `google-genai` | JSON output mode, low temperature for faithful wording. Model list with fallback. |
 | HTTP | `urllib` (stdlib) | No extra dependency; timeout 8 s. |
-| Tests | pytest + Streamlit AppTest | 195 tests, offline, ~3 s. |
+| Tests | pytest + Streamlit AppTest | 209 tests, offline, ~3 s. |
 | Lint | ruff (incl. bandit `S` rules) | One fast tool for style + security lint. |
 | Deploy | Streamlit Cloud, or Cloud Run via `Dockerfile` | Non-root container, keys from Secret Manager. |
 
@@ -46,6 +46,7 @@ All constants live in `saans/constants.py`; assumptions are marked and shown in 
 ## Failure modes
 | Failure | Result |
 |---|---|
-| No / bad Google key, HTTP error, timeout, malformed JSON, missing PM2.5, short forecast | Demo data with visible reason |
+| No / bad Google key, no billing (HTTP 403), timeout, malformed JSON | Open-Meteo live forecast |
+| Open-Meteo also down / bad units / short forecast | Demo data with both reasons visible |
 | No Gemini key, timeout, bad JSON | Offline briefing with reason |
 | Gemini invents a number | Offline briefing ("couldn't verify") |
