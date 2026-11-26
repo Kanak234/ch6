@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 
+from .aqi import category_for, naqi
 from .exposure import fmt_window
 from .i18n import LANG_NAMES, t
 from .models import Lang, Plan
@@ -29,7 +30,8 @@ You explain a plan that has ALREADY been calculated. Follow these rules strictly
 4. Answer: reply to the user's question using FACTS in 2-4 sentences. If there is no question, return "".
    Questions about going outside, children playing, sports, walks, exercise, school runs, travel timing,
    masks, windows, purifiers, cooking smoke or burning waste ARE in scope: answer them directly using
-   the cleanest and most polluted slots, the warnings and the household. Only for questions with no link
+   next_24h (hour by hour), the cleanest and most polluted slots, the warnings and the household — say
+   which hours are better or worse and why, quoting their times and PM2.5 values from next_24h. Only for questions with no link
    to air, health precautions, home, travel or daily routine, politely say you can only help with air quality.
 5. You are not a doctor. Never diagnose or suggest medicines or doses. For breathlessness, chest pain or
    other emergencies, tell them to see a doctor or call 112.
@@ -69,6 +71,16 @@ def build_facts(plan: Plan) -> dict:
             "time": fmt_window(plan.worst_window),
             "pm25_ug_m3": round(plan.worst_window.mean_pm25),
         }
+    # Hour-by-hour outlook so questions like "can the kids play this evening?"
+    # get a direct, grounded answer (time, PM2.5, category in the user's language).
+    facts["next_24h"] = [
+        {
+            "time": f"{r.time:%d/%m %H:%M}",
+            "pm25_ug_m3": round(r.pm25),
+            "category": t(lang, category_for(naqi(r.pm25, r.pm10)).key),
+        }
+        for r in plan.snapshot.forecast
+    ]
     facts["impacts"] = [
         {"choice": i.title, "before": i.before, "after": i.after, "unit": i.unit, "reduction_percent": i.change_pct}
         for i in plan.impacts

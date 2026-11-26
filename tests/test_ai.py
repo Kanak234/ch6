@@ -156,3 +156,9 @@ def test_error_label_unwraps_and_hides_message(plan, fake_generator):
 
 def test_invalid_json_detail(plan, fake_generator):
     assert generate_briefing(plan, "", fake_generator("nope")).detail == "invalid JSON"
+
+
+def test_facts_include_hour_by_hour_outlook(plan):
+    hours = build_facts(plan)["next_24h"]
+    assert len(hours) == len(plan.snapshot.forecast)
+    assert {"time", "pm25_ug_m3", "category"} <= set(hours[0])
