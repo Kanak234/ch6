@@ -12,6 +12,8 @@ A daily low-exposure routine · cleaner indoor air · greener choices · and the
 
 *PromptWars Virtual — Challenge 06: Urban Air Quality Assistant*
 
+[**▶ Live app**](https://ip3kzexavzt7s3mfizlc5c.streamlit.app)
+
 </div>
 
 ---
