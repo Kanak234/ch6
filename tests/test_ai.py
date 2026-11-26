@@ -131,7 +131,7 @@ def test_facts_carry_every_impact(plan):
 
 
 def test_system_instruction_has_core_rules():
-    for rule in ("ONLY numbers", "not a doctor", "112", "<question>", "JSON"):
+    for rule in ("ONLY numbers", "not a doctor", "112", "<question>", "JSON", "children playing, sports"):
         assert rule in SYSTEM_INSTRUCTION
 
 
