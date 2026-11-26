@@ -99,7 +99,14 @@ def cached_snapshot(city: str, lat: float, lon: float, hour_key: str) -> AirSnap
 
 
 class AIUnavailableError(RuntimeError):
-    """Raised inside the cached function so a failed AI call is NOT cached."""
+    """Raised inside the cached function so a failed AI call is NOT cached.
+
+    Carries the offline Briefing so its reason + detail reach the UI unchanged.
+    """
+
+    def __init__(self, briefing: Briefing) -> None:
+        super().__init__(briefing.reason_key)
+        self.briefing = briefing
 
 
 @st.cache_data(show_spinner=False, ttl=3600, max_entries=256)
@@ -112,7 +119,7 @@ def gemini_briefing(facts_key: str, question: str, _plan: Plan, _generator: Text
     del facts_key  # only part of the cache key
     result = generate_briefing(_plan, question, _generator)
     if result.source != "gemini":
-        raise AIUnavailableError(result.reason_key)
+        raise AIUnavailableError(result)
     return result
 
 
@@ -124,9 +131,8 @@ def get_briefing(plan: Plan, question: str) -> Briefing:
     try:
         return gemini_briefing(facts_key, question, plan, generator)
     except AIUnavailableError as exc:
-        # Show the real reason (Gemini down vs. number guard) on the offline briefing.
-        reason = exc.args[0] if exc.args else "ai_reason_failed"
-        return replace(generate_briefing(plan, question, None), reason_key=reason)
+        # The real reason (Gemini down vs. number guard) + secret-free error label.
+        return exc.briefing
 
 
 @st.cache_data(show_spinner=False)
@@ -318,7 +324,8 @@ def render_ask(plan: Plan) -> None:
     if brief.source == "gemini":
         st.caption("✨ " + t(lang, "ai_by_gemini"))
     else:
-        st.caption(t(lang, "ai_offline", reason=t(lang, brief.reason_key)))
+        detail = f" ({brief.detail})" if brief.detail else ""
+        st.caption(t(lang, "ai_offline", reason=t(lang, brief.reason_key)) + detail)
     st.write(brief.text)
     if q and brief.answer:
         st.markdown(f"**{t(lang, 'answer')}:** {brief.answer}")

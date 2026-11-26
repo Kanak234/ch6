@@ -7,7 +7,7 @@ A daily low-exposure routine · cleaner indoor air · greener choices · and the
 
 [![CI](https://github.com/Kanak234/ch6/actions/workflows/ci.yml/badge.svg)](https://github.com/Kanak234/ch6/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
-![Tests](https://img.shields.io/badge/tests-209%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-211%20passing-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 *PromptWars Virtual — Challenge 06: Urban Air Quality Assistant*
@@ -74,7 +74,7 @@ Keys go in `.streamlit/secrets.toml` (see `secrets.toml.example`): `GEMINI_API_K
 ```bash
 ruff check . && ruff format --check . && pytest
 ```
-**209 tests** (~3 s, fully offline): CPCB breakpoints and category edges, WCAG contrast of every badge, input cleaning & injection stripping, dose / mass-balance / time-window physics, both air-data clients with fake HTTP layers (Google request shape, key never in URL, Open-Meteo parsing & null hours, Google → Open-Meteo → demo fallback order), the rule engine for every requirement and household type, all 3 languages (same keys, same placeholders, no leftovers), Gemini parsing / number guard / every fallback with a fake model, and end-to-end UI runs with Streamlit `AppTest`. CI runs on every push.
+**211 tests** (~3 s, fully offline): CPCB breakpoints and category edges, WCAG contrast of every badge, input cleaning & injection stripping, dose / mass-balance / time-window physics, both air-data clients with fake HTTP layers (Google request shape, key never in URL, Open-Meteo parsing & null hours, Google → Open-Meteo → demo fallback order), the rule engine for every requirement and household type, all 3 languages (same keys, same placeholders, no leftovers), Gemini parsing / number guard / every fallback with a fake model, and end-to-end UI runs with Streamlit `AppTest`. CI runs on every push.
 
 ## Sources
 

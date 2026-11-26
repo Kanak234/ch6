@@ -137,3 +137,22 @@ def test_system_instruction_has_core_rules():
 
 def test_offline_briefing_is_itself_grounded(plan):
     assert is_grounded(offline_briefing(plan), build_facts(plan))
+
+
+def test_error_label_unwraps_and_hides_message(plan, fake_generator):
+    class ClientError(Exception):
+        code = 429
+
+    try:
+        try:
+            raise ClientError("quota for key AIza-secret")
+        except ClientError as inner:
+            raise RuntimeError("All Gemini models failed") from inner
+    except RuntimeError as outer:
+        gen = fake_generator(error=outer)
+    brief = generate_briefing(plan, "", gen)
+    assert brief.detail == "ClientError 429" and "AIza" not in brief.detail
+
+
+def test_invalid_json_detail(plan, fake_generator):
+    assert generate_briefing(plan, "", fake_generator("nope")).detail == "invalid JSON"

@@ -91,6 +91,7 @@ class Briefing:
     answer: str
     source: str  # "gemini" | "offline"
     reason_key: str = ""  # i18n key explaining why we are offline
+    detail: str = ""  # short, secret-free error label (e.g. "ClientError 429") for debugging
 
 
 def numbers_in(text: str) -> set[float]:
@@ -138,9 +139,20 @@ def offline_briefing(plan: Plan) -> str:
     return " ".join(lines)
 
 
-def _offline(plan: Plan, question: str, reason_key: str) -> Briefing:
+def error_label(exc: BaseException) -> str:
+    """Secret-free label for an AI failure: the root error's class + HTTP code if any.
+
+    "All Gemini models failed" wraps the last real error in __cause__, so we
+    unwrap it. Never includes the message text (it could echo request data).
+    """
+    root = exc.__cause__ or exc
+    code = getattr(root, "code", None) or getattr(root, "status_code", None)
+    return f"{type(root).__name__} {code}" if isinstance(code, int) else type(root).__name__
+
+
+def _offline(plan: Plan, question: str, reason_key: str, detail: str = "") -> Briefing:
     answer = t(plan.profile.lang, "brief_offline_answer") if question else ""
-    return Briefing(offline_briefing(plan), answer, "offline", reason_key)
+    return Briefing(offline_briefing(plan), answer, "offline", reason_key, detail)
 
 
 def generate_briefing(plan: Plan, question: str, generator: TextGenerator | None) -> Briefing:
@@ -151,10 +163,11 @@ def generate_briefing(plan: Plan, question: str, generator: TextGenerator | None
     try:
         parsed = parse_response(generator.generate(build_prompt(facts, question, plan.profile.lang)))
     except Exception as exc:  # network, quota, timeout... the user still gets a briefing
-        logger.warning("Gemini briefing failed: %s", type(exc).__name__)
-        return _offline(plan, question, "ai_reason_failed")
+        label = error_label(exc)
+        logger.warning("Gemini briefing failed: %s", label)
+        return _offline(plan, question, "ai_reason_failed", label)
     if parsed is None:
-        return _offline(plan, question, "ai_reason_failed")
+        return _offline(plan, question, "ai_reason_failed", "invalid JSON")
     briefing, answer = parsed
     if not is_grounded(briefing + " " + answer, facts):
         logger.info("Number guard rejected a Gemini reply")

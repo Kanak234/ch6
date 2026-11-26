@@ -19,7 +19,7 @@ app.py (Streamlit UI only)
 | Air data | Google Air Quality API (`currentConditions:lookup`, `forecast:lookup`) → Open-Meteo Air Quality API (free, no key, CAMS model) | Hourly forecast for any lat/lon in India; Open-Meteo keeps data live when Google has no key/billing. |
 | GenAI | Google Gemini via `google-genai` | JSON output mode, low temperature for faithful wording. Model list with fallback. |
 | HTTP | `urllib` (stdlib) | No extra dependency; timeout 8 s. |
-| Tests | pytest + Streamlit AppTest | 209 tests, offline, ~3 s. |
+| Tests | pytest + Streamlit AppTest | 211 tests, offline, ~3 s. |
 | Lint | ruff (incl. bandit `S` rules) | One fast tool for style + security lint. |
 | Deploy | Streamlit Cloud, or Cloud Run via `Dockerfile` | Non-root container, keys from Secret Manager. |
 
