@@ -66,12 +66,36 @@ def get_generator() -> TextGenerator | None:
     return GeminiGenerator(key, (model, *DEFAULT_MODELS) if model else DEFAULT_MODELS)
 
 
+class LiveDataUnavailableError(RuntimeError):
+    """Raised inside the cached function so a DEMO result is never cached."""
+
+    def __init__(self, snapshot: AirSnapshot) -> None:
+        super().__init__(snapshot.note)
+        self.snapshot = snapshot
+
+
 @st.cache_data(show_spinner=False, ttl=1800, max_entries=256)
-def cached_snapshot(city: str, lat: float, lon: float, hour_key: str) -> AirSnapshot:
-    """Air data per (rounded location, hour). `hour_key` makes the cache roll over
-    every hour, so we call Google at most twice an hour per place."""
+def _cached_live_snapshot(city: str, lat: float, lon: float, hour_key: str) -> AirSnapshot:
+    """LIVE air data per (rounded location, hour) — Google or Open-Meteo.
+
+    `hour_key` makes the cache roll over every hour, so each source is called at
+    most twice an hour per place. Streamlit never caches a function that raises,
+    so a demo fallback (temporary outage) is retried on the next run instead of
+    being stuck for 30 minutes.
+    """
     del hour_key  # only part of the cache key
-    return get_snapshot(city, lat, lon, _secret("GOOGLE_MAPS_API_KEY"), datetime.now(IST))
+    snapshot = get_snapshot(city, lat, lon, _secret("GOOGLE_MAPS_API_KEY"), datetime.now(IST))
+    if snapshot.source == "demo":
+        raise LiveDataUnavailableError(snapshot)
+    return snapshot
+
+
+def cached_snapshot(city: str, lat: float, lon: float, hour_key: str) -> AirSnapshot:
+    """Live data from the cache when possible; uncached, labelled demo data otherwise."""
+    try:
+        return _cached_live_snapshot(city, lat, lon, hour_key)
+    except LiveDataUnavailableError as exc:
+        return exc.snapshot
 
 
 class AIUnavailableError(RuntimeError):
